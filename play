@@ -1,0 +1,84 @@
+#!/usr/bin/env php
+<?php
+
+namespace SpencerMortensen\Music;
+
+require __DIR__ . '/autoload.php';
+
+$map = [
+	'a' => [216, 'b4'],
+	'o' => [270, 'b5'],
+	'e' => [324, 'b6'],
+	'u' => [378, 'b7'],
+	'i' => [432, 'b8'],
+	'd' => [540, 'b9'],
+	'h' => [648, 'b10'],
+	't' => [756, 'b11'],
+	'n' => [864, 'b12'],
+	's' => [1080, 'b13'],
+	'-' => [1296, 'b14'],
+
+	';' => [216, 'a3'],
+	'q' => [288, 'a4'],
+	'j' => [360, 'a5'],
+	'k' => [432, 'a6'],
+	'x' => [576, 'a7'],
+	'b' => [720, 'a8'],
+	'm' => [864, 'a9'],
+	'w' => [1152, 'a10'],
+	'v' => [1440, 'a11'],
+	'z' => [1728, 'a12']
+];
+
+system('stty -icanon -echo');
+
+$stdin = fopen('php://stdin', 'r');
+
+$newline = "\n";
+
+do {
+	$key = fread($stdin, 1);
+} while (play($map, $key));
+
+system('stty sane');
+
+function play(array $map, $key)
+{
+	if ($key === ' ') {
+		return false;
+	}
+
+	if ($key === "\n") {
+		return true;
+	}
+
+	$key = strtolower($key);
+
+	if (!isset($map[$key])) {
+		return true;
+	}
+
+	list($frequency, $label) = $map[$key];
+	$name = (string)round($frequency, 4);
+	$path = __DIR__ . '/notes/' . $name . '.mp3';
+
+	if (!file_exists($path)) {
+		synthesize($frequency, $path);
+	}
+
+	shell_exec("mpv {$path} > /dev/null 2> /dev/null &");
+
+	echo "{$label}: {$frequency}\n";
+
+	return true;
+}
+
+function synthesize($frequency, $path)
+{
+	$notes = [
+		[0, $frequency]
+	];
+
+	$synthesizer = new Synthesizer();
+	$synthesizer->synthesize($notes, $path, false);
+}

@@ -1,0 +1,44 @@
+#!/usr/bin/env php
+<?php
+
+namespace SpencerMortensen\Music;
+
+$projectDirectory = __DIR__;
+$mp3Directory = "{$projectDirectory}/mp3";
+$scoreDirectory = "{$projectDirectory}/songs";
+$tmpFile = '/tmp/tmp.wav';
+
+require __DIR__ . '/autoload.php';
+
+$scoreName = $GLOBALS['argv'][1] ?? null;
+
+if (is_string($scoreName)) {
+	$scoreName = pathinfo($scoreName, PATHINFO_FILENAME);
+
+	if (strlen($scoreName) === 0) {
+		$scoreName = null;
+	}
+}
+
+if ($scoreName == null) {
+	file_put_contents('php://stderr', "No score name\n");
+	exit(1);
+}
+
+$scorePath = "{$scoreDirectory}/{$scoreName}";
+$text = file_get_contents($scorePath);
+
+$scorer = new Scorer();
+$score = $scorer->getScore($text);
+
+$synthesizer = new Synthesizer();
+$synthesizer->synthesize($score, $tmpFile, true);
+
+$mp3File = "{$mp3Directory}/{$scoreName}.mp3";
+
+$inputFileArgument = escapeshellarg($tmpFile);
+$outputFileArgument = escapeshellarg($mp3File);
+
+shell_exec("lame --quiet {$inputFileArgument} {$outputFileArgument}");
+unlink($tmpFile);
+shell_exec("mpv -really-quiet {$outputFileArgument}");
