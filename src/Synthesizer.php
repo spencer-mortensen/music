@@ -30,24 +30,29 @@ use SpencerMortensen\Music\Wave\Writer;
 
 class Synthesizer
 {
-	/** @var int */
+	private $writer;
+	private $channels;
+	private $quality;
 	private $rate;
 
 	/** @var array */
 	private $cache;
 
+	public function __construct()
+	{
+		$this->writer = new Writer();
+		$this->channels = 1;
+		$this->quality = 2;
+		$this->rate = 44100;
+	}
+
 	public function synthesize(array $notes, $path, bool $isSong)
 	{
-		$channels = 1;
-		$quality = 2;
-		$this->rate = 44100;
-
-		$writer = new Writer();
-		$writer->open($path, $channels, $quality, $this->rate);
+		$this->writer->open($path, $this->channels, $this->quality, $this->rate);
 
 		if ($isSong) {
 			$silence = $this->getSilence(.5);
-			$writer->write($silence);
+			$this->writer->write($silence);
 		}
 
 		$instrument = new MarimbaInstrument();
@@ -56,31 +61,31 @@ class Synthesizer
 		$songTime = 0;
 
 		foreach ($notes as $note) {
-			list($time, $frequency, $spread) = $note;
+			list($time, $frequency) = $note;
 
 			if ($songTime < $time) {
 				$duration = $time - $songTime;
 				$length = (int)($this->rate * $duration);
 
 				$samples = array_splice($song, 0, $length);
-				$writer->write($samples);
+				$this->writer->write($samples);
 
 				$silenceLength = $length - count($samples);
 
 				if (0 < $silenceLength) {
 					$silence = array_fill(0, $silenceLength, 0);
-					$writer->write($silence);
+					$this->writer->write($silence);
 				}
 
 				$songTime = $time;
 			}
 
-			$sample = $this->getSample($instrument, $frequency, $spread);
+			$sample = $this->getSample($instrument, $frequency);
 			$song = $this->add($song, $sample);
 		}
 
-		$writer->write($song);
-		$writer->close();
+		$this->writer->write($song);
+		$this->writer->close();
 	}
 
 	private function getSilence($duration)
@@ -89,13 +94,13 @@ class Synthesizer
 		return array_fill(0, $length, 0);
 	}
 
-	private function getSample($instrument, $frequency, $spread)
+	private function getSample($instrument, $frequency)
 	{
-		$key = "{$frequency}:{$spread}";
-		$sample = &$this->cache[$key];
+		$sample = &$this->cache[$frequency];
 
 		if (!isset($sample)) {
-			$sample = $this->synthesizeSample($instrument, $frequency, $spread);
+			$duration = 1;
+			$sample = $this->synthesizeSample($instrument, $frequency, $duration);
 		}
 
 		return $sample;

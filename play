@@ -5,6 +5,8 @@ namespace SpencerMortensen\Music;
 
 require __DIR__ . '/autoload.php';
 
+$cacheDirectory = __DIR__ . '/cache';
+
 $map = [
 	'a' => [216, 'b4'],
 	'o' => [270, 'b5'],
@@ -30,6 +32,9 @@ $map = [
 	'z' => [1728, 'a12']
 ];
 
+$cacheDirectoryArgument = escapeshellarg($cacheDirectory);
+shell_exec("mkdir -p {$cacheDirectoryArgument}");
+
 system('stty -icanon -echo');
 
 $stdin = fopen('php://stdin', 'r');
@@ -44,11 +49,14 @@ system('stty sane');
 
 function play(array $map, $key)
 {
+	global $cacheDirectory;
+
 	if ($key === ' ') {
 		return false;
 	}
 
 	if ($key === "\n") {
+		echo "\n\n";
 		return true;
 	}
 
@@ -60,7 +68,7 @@ function play(array $map, $key)
 
 	list($frequency, $label) = $map[$key];
 	$name = (string)round($frequency, 4);
-	$path = __DIR__ . '/notes/' . $name . '.mp3';
+	$path = "{$cacheDirectory}/{$name}.mp3";
 
 	if (!file_exists($path)) {
 		synthesize($frequency, $path);
@@ -68,8 +76,7 @@ function play(array $map, $key)
 
 	shell_exec("mpv {$path} > /dev/null 2> /dev/null &");
 
-	echo "{$label}: {$frequency}\n";
-
+	echo "{$label} ";
 	return true;
 }
 
