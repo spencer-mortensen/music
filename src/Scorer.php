@@ -156,7 +156,6 @@ class Scorer
 
 	private function getFrequency(string $name, int $i)
 	{
-
 		$frequencies = $this->notes[$name];
 		$n = count($frequencies);
 		return $frequencies[$i % $n] * (1 << (int)floor($i / $n));
